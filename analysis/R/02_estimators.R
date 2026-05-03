@@ -1,4 +1,10 @@
-# [0] est_adj
+
+# --------------------------------------------------------------
+# 2. Estimators
+# --------------------------------------------------------------
+
+# [0] Adjusted estimator
+
 est_adj <- function(dat, K = NULL, eps = NULL) {
   dat$W5 <- factor(dat$W5, levels = c(0, 0.5, 1))
   Yc <- (dat$Y - 1) / (K - 1)
@@ -11,24 +17,24 @@ est_adj <- function(dat, K = NULL, eps = NULL) {
   df <- df.residual(fit)
   t_val <- qt(0.975, df)
   
+  ci_low  <- est - t_val * se
+  ci_high <- est + t_val * se
+  
   list(
     estimate = est,
     se = se,
-    conf.low = est - t_val * se,
-    conf.high = est + t_val * se
+    conf.low = ci_low,
+    conf.high = ci_high
   )
 }
 
-# [1] G-computation 
+
+# [1] G-computation (parametric)
 est_gcomp <- function(dat, K = NULL, eps = NULL) {
   dat$W5 <- factor(dat$W5, levels = c(0, 0.5, 1))
   dat$Yc <- (dat$Y - 1) / (K - 1)
   
-  Yc <- dat$Yc
-  A  <- dat$A
-  n  <- nrow(dat)
-  
- 
+  # ---------- Q model ----------
   Qfit <- lm(Yc ~ A + W1 + W2 + W3 + W4 + W5, data = dat)
   
   dat1 <- dat; dat1$A <- 1
@@ -37,52 +43,34 @@ est_gcomp <- function(dat, K = NULL, eps = NULL) {
   Q1 <- predict(Qfit, newdata = dat1)
   Q0 <- predict(Qfit, newdata = dat0)
   
-  gfit <- glm(A ~ W1 + W2 + W3 + W4 + W5,
-              data = dat,
-              family = binomial())
-  
-  g <- predict(gfit, type = "response")
-  g <- pmin(pmax(g, eps), 1 - eps)
-  
+  # ---------- ATE ----------
   est <- mean(Q1 - Q0)
   
-  IF <- (Q1 - Q0) +
-    A / g * (Yc - Q1) -
-    (1 - A) / (1 - g) * (Yc - Q0) -
-    est
-  
-  se <- sqrt(mean(IF^2) / n)
- 
-  ci_low  <- est - qnorm(0.975) * se
-  ci_high <- est + qnorm(0.975) * se
-  
-  list(
-    estimate = est,
-    se = se,
-    conf.low = ci_low,
-    conf.high = ci_high,
-    IF = IF
-  )
+  return(list(
+    estimate = est
+  ))
 }
+
 
 # [1b] G-computation (Super Learner)
 
 est_gcomp_sl <- function(dat, K = NULL, eps = NULL) {
+  
   dat$W5 <- factor(dat$W5, levels = c(0, 0.5, 1))
   dat$Yc <- (dat$Y - 1) / (K - 1)
   
   Yc <- dat$Yc
-  A  <- dat$A
-  n  <- nrow(dat)
   
+  
+  # ---------- Q model ----------
   X_Q <- dat[, c("A","W1","W2","W3","W4","W5")]
   
   Qfit <- SuperLearner(
     Y = Yc,
     X = X_Q,
-    SL.library = c("SL.glm", "SL.randomForest"),
+    SL.library = SL_lib,
     family = gaussian(),
-    cvControl = list(V = 10)
+    cvControl = list(V = 10, shuffle = FALSE)
   )
   
   dat1 <- dat; dat1$A <- 1
@@ -94,40 +82,16 @@ est_gcomp_sl <- function(dat, K = NULL, eps = NULL) {
   Q1 <- predict(Qfit, newdata = X1)$pred
   Q0 <- predict(Qfit, newdata = X0)$pred
   
-  X_g <- dat[, c("W1","W2","W3","W4","W5")]
-  
-  gfit <- SuperLearner(
-    Y = A,
-    X = X_g,
-    SL.library = c("SL.glm", "SL.randomForest"),
-    family = binomial(),
-    cvControl = list(V = 10)
-  )
-  
-  g <- pmin(pmax(gfit$SL.predict, eps), 1 - eps)
-  
+  # ---------- ATE ----------
   est <- mean(Q1 - Q0)
- 
-  IF <- (Q1 - Q0) +
-    A / g * (Yc - Q1) -
-    (1 - A) / (1 - g) * (Yc - Q0) -
-    est
   
-  se <- sqrt(mean(IF^2) / n)
-  
-  ci_low  <- est - qnorm(0.975) * se
-  ci_high <- est + qnorm(0.975) * se
-  
-  list(
-    estimate = est,
-    se = se,
-    conf.low = ci_low,
-    conf.high = ci_high,
-    IF = IF
-  )
+  return(list(
+    estimate = est
+  ))
 }
 
-# [2] IPW 
+
+# [2] IPW (parametric)
 
 est_ipw <- function(dat, K = NULL, eps = NULL) {
   dat$W5 <- factor(dat$W5, levels = c(0, 0.5, 1))
@@ -160,9 +124,11 @@ est_ipw <- function(dat, K = NULL, eps = NULL) {
   )
 }
 
+
 # [2b] IPW (Super Learner)
 
 est_ipw_sl <- function(dat, K = NULL, eps = NULL) {
+ 
   dat$W5 <- factor(dat$W5, levels = c(0, 0.5, 1))
   Yc <- (dat$Y - 1) / (K - 1)
   A  <- dat$A
@@ -175,7 +141,7 @@ est_ipw_sl <- function(dat, K = NULL, eps = NULL) {
     X = X_g,
     SL.library = SL_lib,
     family = binomial(),
-    cvControl = list(V = 10)
+    cvControl = list(V = 10, shuffle = FALSE)
   )
   
   g <- pmin(pmax(gfit$SL.predict, eps), 1 - eps)
@@ -198,8 +164,10 @@ est_ipw_sl <- function(dat, K = NULL, eps = NULL) {
   )
 }
 
-# [3] Threshold TMLE 
+
+# [3] Threshold TMLE (parametric)
 est_tmle_bin <- function(dat, K = NULL, eps = NULL) {
+  
   dat$W5 <- factor(dat$W5, levels = c(0, 0.5, 1))
   
   logit <- function(p) log(p / (1 - p))
@@ -281,8 +249,10 @@ est_tmle_bin <- function(dat, K = NULL, eps = NULL) {
   )
 }
 
+
 # [3b] Threshold TMLE (Super Learner)
 est_tmle_bin_sl <- function(dat, K = NULL, eps = NULL) {
+  
   dat$W5 <- factor(dat$W5, levels = c(0, 0.5, 1))
   
   logit <- function(p) log(p / (1 - p))
@@ -304,7 +274,7 @@ est_tmle_bin_sl <- function(dat, K = NULL, eps = NULL) {
       X = X_Q,
       SL.library = SL_lib,
       family = binomial(),
-      cvControl = list(V = 10)
+      cvControl = list(V = 10, shuffle = FALSE)
     )
     
     QAW <- clip01(Qfit$SL.predict)
@@ -380,6 +350,7 @@ est_tmle_bin_sl <- function(dat, K = NULL, eps = NULL) {
   )
 }
 
+
 # [4] Continuous TMLE (parametric)
 est_tmle_cont <- function(dat, K = NULL, eps = NULL) {
   dat$W5 <- factor(dat$W5, levels = c(0, 0.5, 1))
@@ -435,8 +406,10 @@ est_tmle_cont <- function(dat, K = NULL, eps = NULL) {
   )
 }
 
+
 # [4b] Continuous TMLE (Super Learner)
 est_tmle_cont_sl <- function(dat, K = NULL, eps = NULL) {
+  
   dat$W5 <- factor(dat$W5, levels = c(0, 0.5, 1))
   dat$Yc <- (dat$Y - 1) / (K - 1)
   Yc <- dat$Yc
@@ -450,7 +423,7 @@ est_tmle_cont_sl <- function(dat, K = NULL, eps = NULL) {
     X = X_Q,
     SL.library = SL_lib,
     family = gaussian(),
-    cvControl = list(V = 10)
+    cvControl = list(V = 10, shuffle = FALSE)
   )
   
   QAW <- Qfit$SL.predict
@@ -507,3 +480,4 @@ est_tmle_cont_sl <- function(dat, K = NULL, eps = NULL) {
     eps_hat = eps_hat
   )
 }
+
