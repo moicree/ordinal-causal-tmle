@@ -1,14 +1,16 @@
 suppressPackageStartupMessages({
-  library(survival)
-  library(MASS)
-  library(tmle)
   library(SuperLearner)
   library(dplyr)
+  library(randomForest)
   library(tidyr)
-  library(ggplot2)
+  library(survival)
 })
 
-set.seed(2024)
+
+# --------------------------------------------------------------
+# 1. Data preparation
+# --------------------------------------------------------------
+
 
 data(pbc)
 
@@ -25,7 +27,3 @@ df_clean <- pbc %>%
   ) %>%
   select(Y, A, W1, W2, W3, W4, W5) %>%
   filter(complete.cases(.))
-
-K <- 4
-eps <- 0.05
-SL_lib <- c("SL.glm", "SL.randomForest")
