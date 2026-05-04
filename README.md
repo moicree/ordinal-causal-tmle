@@ -16,9 +16,5 @@ Code for simulation studies
 - scripts/ : scripts to run simulations(make sure to set the correct paths before running)
 - results/ : stores simulation outputs
 
-## Python Code
-
-### RADAR_PLOT.py
-Python script for visualizing results.  
-It generates radar plots to compare different methods (G-computation, IPW, TMLE).
+# Each R script in the `scripts/` folders includes a predefined random seed, and users should ensure that file paths are properly configured before execution.
 
