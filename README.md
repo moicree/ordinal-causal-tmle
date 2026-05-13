@@ -16,8 +16,10 @@ Code for simulation studies
 - scripts/ : scripts to run simulations(make sure to set the correct paths before running)
 - results/ : stores simulation outputs
 
+### Python visualization code
+
 # notes
 Each R script in the `scripts/` folders includes a predefined random seed, and users should ensure that file paths are properly configured before execution.
-For transparency, the GitHub repository reports both Wald-type and bootstrap-based inference results. 
-The manuscript tables present the primary inference method selected for each estimator.
+
+Updated analysis scripts and added Python visualization code and supplementary result files. Clarified Wald versus bootstrap inference reporting and improved reproducibility documentation.
 
