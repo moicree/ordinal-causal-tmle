@@ -18,4 +18,6 @@ Code for simulation studies
 
 # notes
 Each R script in the `scripts/` folders includes a predefined random seed, and users should ensure that file paths are properly configured before execution.
+For transparency, the GitHub repository reports both Wald-type and bootstrap-based inference results. 
+The manuscript tables present the primary inference method selected for each estimator.
 
