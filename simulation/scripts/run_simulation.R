@@ -17,8 +17,8 @@ SL_cv_control <- list(V = 10,shuffle = FALSE) # V=5, 10
 psi_true <- true_psi()$psi
 
 # run
-B_sim <- 500 # B=500
-n_sim <- 500   # n=200,500 
+B_sim <- 1000 # B=1000
+n_sim <- 1000   # n=200,500,1000
 
 res_list <- list(
   S1 = run_sim(B_sim, n_sim, FALSE, FALSE, "S1"),
