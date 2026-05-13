@@ -11,7 +11,7 @@ K <- 4
 eps <- 0.05
 SL_lib <- c("SL.glm", "SL.randomForest")
 
-res <- run_all_estimators(df_clean, K = K, B = 500)
+res <- run_all_estimators(df_clean, K = K, B = 1000)
 
 df <- to_df(res)
 
