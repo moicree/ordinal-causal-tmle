@@ -13,7 +13,7 @@ run_all_estimators <- function(dat, K, eps = 0.05, B = 500) {
       
       results[[name]] <<- list(
         estimate  = est_res$estimate,
-        se        = NA,
+        wald.se         = NA,
         wald.low  = NA,
         wald.high = NA,
         boot.se   = boot_res$boot.se,
@@ -25,7 +25,7 @@ run_all_estimators <- function(dat, K, eps = 0.05, B = 500) {
       
       results[[name]] <<- list(
         estimate  = est_res$estimate,
-        se        = est_res$se,
+        wald.se        = est_res$se,
         wald.low  = est_res$conf.low,
         wald.high = est_res$conf.high,
         boot.se   = boot_res$boot.se,
@@ -35,7 +35,7 @@ run_all_estimators <- function(dat, K, eps = 0.05, B = 500) {
     }
   }
   
-  # ⭐ 함수 밖에서 호출해야 함
+
   add_result("adj", est_adj)
   add_result("gcomp", est_gcomp)
   add_result("gcomp_sl", est_gcomp_sl)
@@ -52,12 +52,14 @@ run_all_estimators <- function(dat, K, eps = 0.05, B = 500) {
 to_df <- function(res_list) {
   do.call(rbind, lapply(names(res_list), function(nm) {
     x <- res_list[[nm]]
+    
     data.frame(
       method = nm,
       estimate = x$estimate,
-      se = x$se,
+      wald.se = x$wald.se,
       wald.low = x$wald.low,
       wald.high = x$wald.high,
+      boot.se = x$boot.se,   
       boot.low = x$boot.low,
       boot.high = x$boot.high,
       row.names = NULL
